@@ -1,9 +1,14 @@
+
+/* lzy171013注:
+ fmdb没有像其他第三方开源类库一样，在每个类文件开头都写上 license 声明之类。
+ 
+ */
 #import <Foundation/Foundation.h>
 #import "FMResultSet.h"
 #import "FMDatabasePool.h"
 
 NS_ASSUME_NONNULL_BEGIN
-
+// 当前的编译环境是否有 arc的特性。
 #if ! __has_feature(objc_arc)
     #define FMDBAutorelease(__v) ([__v autorelease]);
     #define FMDBReturnAutoreleased FMDBAutorelease
@@ -24,6 +29,9 @@ NS_ASSUME_NONNULL_BEGIN
 
     #define FMDBRelease(__v)
 
+/* lzy171013注:
+ 如果 定义了编译参数 OS_OBJECT_USE_OBJC=1 ，那么 队列分发对象 将被当做 ObjC对象来对待，而且使用arc
+ */
 // If OS_OBJECT_USE_OBJC=1, then the dispatch objects will be treated like ObjC objects
 // and will participate in ARC.
 // See the section on "Dispatch Queues and Automatic Reference Counting" in "Grand Central Dispatch (GCD) Reference" for details. 
@@ -38,10 +46,10 @@ NS_ASSUME_NONNULL_BEGIN
     #define instancetype id
 #endif
 
-
+// 执行sql语句的统一回调block
 typedef int(^FMDBExecuteStatementsCallbackBlock)(NSDictionary *resultsDictionary);
 
-
+// 官方对fmdb的注释和定位，一个SQLite的 ObjC的封装。主要类介绍；其他相关类；参考资料链接；特别警告，多线程环境使用FMDatabaseQueue
 /** A SQLite ([http://sqlite.org/](http://sqlite.org/)) Objective-C wrapper.
  
  ### Usage
@@ -67,6 +75,7 @@ typedef int(^FMDBExecuteStatementsCallbackBlock)(NSDictionary *resultsDictionary
 
  */
 
+// 这是用来解除 编译器的某特定警告的。可以搜索 Which Clang Warning Is Generating This Message? 文件，来明确各个编译器参数是什么意思。
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wobjc-interface-ivars"
 
@@ -77,23 +86,23 @@ typedef int(^FMDBExecuteStatementsCallbackBlock)(NSDictionary *resultsDictionary
 /// @name Properties
 ///-----------------
 
-/** Whether should trace execution */
+/** Whether should trace execution 是否跟踪执行上下文*/
 
 @property (atomic, assign) BOOL traceExecution;
 
-/** Whether checked out or not */
+/** Whether checked out or not 是否已经完成某种检查操作*/
 
 @property (atomic, assign) BOOL checkedOut;
 
-/** Crash on errors */
+/** Crash on errors 是否要在发生错误时崩溃*/
 
 @property (atomic, assign) BOOL crashOnErrors;
 
-/** Logs errors */
+/** Logs errors 是否做错误日志*/
 
 @property (atomic, assign) BOOL logsErrors;
 
-/** Dictionary of cached statements */
+/** Dictionary of cached statements 缓存的查询语句的字典*/
 
 @property (atomic, retain, nullable) NSMutableDictionary *cachedStatements;
 
@@ -119,6 +128,7 @@ typedef int(^FMDBExecuteStatementsCallbackBlock)(NSDictionary *resultsDictionary
     NSString *dbPath   = [docsPath stringByAppendingPathComponent:@"test.db"];
     FMDatabase *db     = [FMDatabase databaseWithPath:dbPath];
 
+ 更多关于 临时数据库文件，只存在内存中的数据库的信息，查看sqlite文档中的相关主题
  (For more information on temporary and in-memory databases, read the sqlite documentation on the subject: [http://www.sqlite.org/inmemorydb.html](http://www.sqlite.org/inmemorydb.html))
 
  @param inPath Path of database file
@@ -148,7 +158,7 @@ typedef int(^FMDBExecuteStatementsCallbackBlock)(NSDictionary *resultsDictionary
  
  (For more information on temporary and in-memory databases, read the sqlite documentation on the subject: [http://www.sqlite.org/inmemorydb.html](http://www.sqlite.org/inmemorydb.html))
  
- @param url The local file URL (not remote URL) of database file
+ @param url The local file URL (not remote URL) of database file 本地文件url
  
  @return `FMDatabase` object if successful; `nil` if failure.
  
@@ -227,6 +237,24 @@ typedef int(^FMDBExecuteStatementsCallbackBlock)(NSDictionary *resultsDictionary
  */
 
 - (BOOL)open;
+
+/* lzy171013注:
+ -open方法内部调用的
+ -openWithFlags方法。
+ 
+ 使用附带的 flags 打开一个新的数据库连接
+ flags参数：是一个int值。
+ 有三种可能的值：
+ 1、`SQLITE_OPEN_READONLY`，只读模式打开数据库连接，如果数据库文件不存在，返回一个错误
+ 
+ 2、`SQLITE_OPEN_READWRITE`，以读写形式打开数据库连接，如果数据库文件受到系统的写入保护，则只能读取。不论是可读写还是只读，文件都必须存在，否则将返回一个错误。
+ 
+ 3、`SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE`，这是-open方法默认采用的形式：文件若不存在，则创建，当文件存在时，以可读可写的形式打开数据库连接。
+ 
+ 这三种可能的值都是由下面的一些数据库操作flags组合而成的：
+ `SQLITE_OPEN_NOMUTEX`, `SQLITE_OPEN_FULLMUTEX`, `SQLITE_OPEN_SHAREDCACHE`, `SQLITE_OPEN_PRIVATECACHE`, and/or `SQLITE_OPEN_URI`
+ 
+ */
 
 /** Opening a new database connection with flags and an optional virtual file system (VFS)
 
@@ -307,7 +335,33 @@ typedef int(^FMDBExecuteStatementsCallbackBlock)(NSDictionary *resultsDictionary
 ///----------------------
 /// @name Perform updates
 ///----------------------
-
+/* lzy171013注:
+ 执行单独的一条 sql更新语句
+ 
+ -------
+ 一：
+ 必须是不会返回数据的sql语句如：`UPDATE`, `INSERT`, or `DELETE`。
+ 这个方法实现了
+ 1、[`sqlite3_prepare_v2`](http://sqlite.org/c3ref/prepare.html), [`sqlite3_bind`](http://sqlite.org/c3ref/bind_blob.html) 使得sql语句中 可选参数列表与占位符`?`对应绑定 。
+ 
+ 2、[`sqlite_step`](http://sqlite.org/c3ref/step.html)，用于执行更新
+ -------
+ 二：
+ 传入这个方法的可选值必须是 对象(e.g. `NSString`, `NSNumber`, `NSNull`, `NSDate`, and `NSData` objects)；
+ 不可是基本类型(e.g. `int`, `long`, `NSInteger`, etc.)
+ 本方法对 对象类型自动处理，对 其他类型，使用该类型的description方法返回的文本，当做text类型处理。
+ -------
+ 三：
+ @param sql是带 `?`占位符的SQL查询语句
+ @param outErr 一个`NSError`指针的引用，一个自动释放的`NSError`对象。当错误发生时这个引用会有值。
+ -------
+ 四、
+ ... 代表可选参数，用于替换sql语句中的'?'占位符。可选参数必须是对象，不可是基本数据类型。
+ -------
+ 五、
+ 方法返回值是BOOL，YES成功，NO失败。通过调用`<lastError>`, `<lastErrorCode>`, or `<lastErrorMessage>`方法获得关于失败的诊断信息
+ 
+ */
 /** Execute single update statement
  
  This method executes a single SQL update statement (i.e. any SQL that does not return results, such as `UPDATE`, `INSERT`, or `DELETE`. This method employs [`sqlite3_prepare_v2`](http://sqlite.org/c3ref/prepare.html), [`sqlite3_bind`](http://sqlite.org/c3ref/bind_blob.html) to bind values to `?` placeholders in the SQL with the optional list of parameters, and [`sqlite_step`](http://sqlite.org/c3ref/step.html) to perform the update.
