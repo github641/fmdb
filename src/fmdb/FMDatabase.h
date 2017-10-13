@@ -228,7 +228,7 @@ typedef int(^FMDBExecuteStatementsCallbackBlock)(NSDictionary *resultsDictionary
 
 - (BOOL)open;
 
-/** Opening a new database connection with flags and an optional virtual file system (VFS)
+/** Opening a new database connection with flags.
 
  @param flags one of the following three values, optionally combined with the `SQLITE_OPEN_NOMUTEX`, `SQLITE_OPEN_FULLMUTEX`, `SQLITE_OPEN_SHAREDCACHE`, `SQLITE_OPEN_PRIVATECACHE`, and/or `SQLITE_OPEN_URI` flags:
 
@@ -316,7 +316,7 @@ typedef int(^FMDBExecuteStatementsCallbackBlock)(NSDictionary *resultsDictionary
 
  @param sql The SQL to be performed, with optional `?` placeholders.
  
- @param outErr A reference to the `NSError` pointer to be updated with an auto released `NSError` object if an error if an error occurs. If `nil`, no `NSError` object will be returned.
+ @param outErr A reference to the `NSError` pointer to be updated with an auto released `NSError` object if an error occurs. If `nil`, no `NSError` object will be returned.
  
  @param ... Optional parameters to bind to `?` placeholders in the SQL statement. These should be Objective-C objects (e.g. `NSString`, `NSNumber`, etc.), not fundamental C data types (e.g. `int`, `char *`, etc.).
 
