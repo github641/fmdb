@@ -2,6 +2,21 @@
 /* lzy171013注:
  fmdb没有像其他第三方开源类库一样，在每个类文件开头都写上 license 声明之类。
  
+ 本类的内容：
+ Properties；
+ Initialization；
+ Opening and closing database；
+ Perform updates；// 更新
+ Retrieving results；// 检索
+ Transactions；// 事物
+ Cached statements and result sets；// 查询语句与查询结果缓存
+ Encryption methods；// 数据库加密解密
+ General inquiry methods；// 通用查询方法，查看数据库的元数据：路径、操作句柄之类
+ Retrieving error codes；// 获取出错信息
+ Save points；// 建立回滚点
+ SQLite library status；
+ Make SQL function；
+ Date formatter；
  */
 #import <Foundation/Foundation.h>
 #import "FMResultSet.h"
@@ -737,7 +752,7 @@ typedef int(^FMDBExecuteStatementsCallbackBlock)(NSDictionary *resultsDictionary
 
 - (BOOL)beginTransaction;
 
-/** Begin a deferred transaction
+/** Begin a deferred（延期的） transaction
  
  @return `YES` on success; `NO` on failure. If failed, you can call `<lastError>`, `<lastErrorCode>`, or `<lastErrorMessage>` for diagnostic information regarding the failure.
  
@@ -924,7 +939,7 @@ typedef int(^FMDBExecuteStatementsCallbackBlock)(NSDictionary *resultsDictionary
 
 /** Last error code
  
- Returns the numeric result code or extended result code for the most recent failed SQLite API call associated with a database connection. If a prior API call failed but the most recent API call succeeded, this return value is undefined.
+ Returns the numeric result code or extended result code for the most recent failed SQLite API call associated with a database connection. If a prior API call failed but the most recent API call succeeded, this return value is undefined（不明确的）.
  
  @return Integer value of the last error code.
  
@@ -981,7 +996,7 @@ typedef int(^FMDBExecuteStatementsCallbackBlock)(NSDictionary *resultsDictionary
 
 
 ///------------------
-/// @name Save points
+/// @name Save points 建立回滚点
 ///------------------
 
 /** Start save point
@@ -1269,7 +1284,7 @@ typedef NS_ENUM(int, SqliteValueType) {
 /// @name Date formatter
 ///---------------------
 
-/** Generate an `NSDateFormatter` that won't be broken by permutations of timezones or locales.
+/** Generate an `NSDateFormatter` that won't be broken by permutations（数列） of timezones or locales.
  
  Use this method to generate values to set the dateFormat property.
  
@@ -1279,7 +1294,7 @@ typedef NS_ENUM(int, SqliteValueType) {
 
  @param format A valid NSDateFormatter format string.
  
- @return A `NSDateFormatter` that can be used for converting dates to strings and vice versa.
+ @return A `NSDateFormatter` that can be used for converting dates to strings and vice versa(或反之：vice versa，strings->dates).
  
  @see hasDateFormatter
  @see setDateFormat:
@@ -1353,7 +1368,7 @@ typedef NS_ENUM(int, SqliteValueType) {
 
 @end
 
-
+#pragma mark - ================== Objective-C wrapper for `sqlite3_stmt` ==================
 /** Objective-C wrapper for `sqlite3_stmt`
  
  This is a wrapper for a SQLite `sqlite3_stmt`. Generally when using FMDB you will not need to interact directly with `FMStatement`, but rather with `<FMDatabase>` and `<FMResultSet>` only.
